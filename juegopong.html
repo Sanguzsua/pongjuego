@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fútbol Pong Retro</title>
+<style>
+  body {
+    background: black;
+    color: white;
+    font-family: monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+  }
+  canvas {
+    background: black;
+    display: block;
+    margin-top: 10px;
+    border: 4px solid white;
+  }
+  #marcador {
+    font-size: 24px;
+    margin-top: 10px;
+  }
+  #tiempo {
+    font-size: 18px;
+    margin-top: 5px;
+  }
+</style>
+</head>
+<body>
+
+<div id="marcador">0 - 0</div>
+<div id="tiempo">Tiempo: 60</div>
+<canvas id="gameCanvas" width="800" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let jugador1Y = canvas.height / 2 - 40;
+let jugador2Y = canvas.height / 2 - 40;
+const paletaAltura = 80, paletaAncho = 10;
+const velocidadPaleta = 12; // Más rápido
+
+let keysPressed = {}; // Para movimiento continuo
+
+let pelotaX = canvas.width / 2, pelotaY = canvas.height / 2;
+let pelotaRadio = 5;
+let velPelotaX = 4, velPelotaY = 3;
+
+let score1 = 0, score2 = 0;
+let tiempo = 60; // segundos
+let intervaloTiempo;
+
+document.addEventListener("keydown", (e) => keysPressed[e.key] = true);
+document.addEventListener("keyup", (e) => keysPressed[e.key] = false);
+
+function moverPaletas() {
+  // Jugador 1
+  if (keysPressed["w"] || keysPressed["W"]) {
+    jugador1Y -= velocidadPaleta;
+  }
+  if (keysPressed["s"] || keysPressed["S"]) {
+    jugador1Y += velocidadPaleta;
+  }
+  // Jugador 2
+  if (keysPressed["ArrowUp"]) {
+    jugador2Y -= velocidadPaleta;
+  }
+  if (keysPressed["ArrowDown"]) {
+    jugador2Y += velocidadPaleta;
+  }
+
+  // Evitar que salgan del campo
+  jugador1Y = Math.max(0, Math.min(canvas.height - paletaAltura, jugador1Y));
+  jugador2Y = Math.max(0, Math.min(canvas.height - paletaAltura, jugador2Y));
+}
+
+function dibujarCampo() {
+  ctx.strokeStyle = "white";
+  ctx.setLineDash([]);
+  ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+  // Línea central punteada
+  ctx.beginPath();
+  ctx.setLineDash([10, 10]);
+  ctx.moveTo(canvas.width / 2, 0);
+  ctx.lineTo(canvas.width / 2, canvas.height);
+  ctx.stroke();
+}
+
+function dibujarPaletas() {
+  ctx.fillStyle = "white";
+  ctx.fillRect(20, jugador1Y, paletaAncho, paletaAltura);
+  ctx.fillRect(canvas.width - 30, jugador2Y, paletaAncho, paletaAltura);
+}
+
+function dibujarPelota() {
+  ctx.beginPath();
+  ctx.arc(pelotaX, pelotaY, pelotaRadio, 0, Math.PI * 2);
+  ctx.fillStyle = "white";
+  ctx.fill();
+  ctx.closePath();
+}
+
+function moverPelota() {
+  pelotaX += velPelotaX;
+  pelotaY += velPelotaY;
+
+  // Rebote arriba/abajo
+  if (pelotaY - pelotaRadio < 0 || pelotaY + pelotaRadio > canvas.height) {
+    velPelotaY *= -1;
+  }
+
+  // Colisión con paletas
+  if (
+    pelotaX - pelotaRadio < 30 &&
+    pelotaY > jugador1Y &&
+    pelotaY < jugador1Y + paletaAltura
+  ) {
+    velPelotaX *= -1;
+  }
+  if (
+    pelotaX + pelotaRadio > canvas.width - 30 &&
+    pelotaY > jugador2Y &&
+    pelotaY < jugador2Y + paletaAltura
+  ) {
+    velPelotaX *= -1;
+  }
+
+  // Gol jugador 2
+  if (pelotaX - pelotaRadio < 0) {
+    score2++;
+    reiniciarPelota();
+  }
+  // Gol jugador 1
+  if (pelotaX + pelotaRadio > canvas.width) {
+    score1++;
+    reiniciarPelota();
+  }
+}
+
+function reiniciarPelota() {
+  pelotaX = canvas.width / 2;
+  pelotaY = canvas.height / 2;
+  velPelotaX *= -1;
+  velPelotaY = 3 * (Math.random() > 0.5 ? 1 : -1);
+}
+
+function dibujarMarcador() {
+  document.getElementById("marcador").textContent = `${score1} - ${score2}`;
+}
+
+function dibujarTiempo() {
+  document.getElementById("tiempo").textContent = `Tiempo: ${tiempo}`;
+}
+
+function iniciarTiempo() {
+  intervaloTiempo = setInterval(() => {
+    tiempo--;
+    dibujarTiempo();
+    if (tiempo <= 0) {
+      clearInterval(intervaloTiempo);
+      alert(`Fin del juego! Marcador final: ${score1} - ${score2}`);
+      document.location.reload();
+    }
+  }, 1000);
+}
+
+function dibujar() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  moverPaletas();
+  dibujarCampo();
+  dibujarPaletas();
+  dibujarPelota();
+  moverPelota();
+  dibujarMarcador();
+  requestAnimationFrame(dibujar);
+}
+
+iniciarTiempo();
+dibujar();
+</script>
+
+</body>
+</html>
